@@ -16,39 +16,11 @@ var userInput = process.argv[3];
 //User commands: 'my-tweets', 'soptify-this-song', 'movie-this', 'do-what-it-says'.
 //User searches:'<song name>', '<movie name>'
 
-//switch-case statement for user command
-function switchCase() {
-	switch (userCom) {
-		case 'my-tweets':
-			fetchTwitter();
-			break;
-
-		case 'soptify-this-song':
-			fetchSpotify();
-			break;
-
-		case 'movie-this':
-			fetchMovie();
-			break;
-
-		case 'do-what-it-says':
-			fetchRandom();
-			break;
-
-			default: 
-			console.log("No matching arguments!");
-	}
-};
-
-switchCase();
 
 //Call twitter function
-function fetchTwitter() {
+var getMyTweets = function() {
 	if (userCom) {
-		var params = {
-			q: 'nurulcode',
-			count: 2
-		}
+		var params = {q: 'nurulcode', count: 2};
 
 		//search two tweets from nurulcode user
 
@@ -59,60 +31,58 @@ function fetchTwitter() {
 			}
 			var tweets = data.statuses;
 			for (var i = 0; i < tweets.length; i++) {
-				console.log("-----------------------------")
+				console.log("-----------------------------");
+				console.log(tweets[i].created_at);
 				console.log(tweets[i].text);
-				console.log("-----------------------------")
+				console.log("-----------------------------");
 			}
 		});
-		var myFirstTwit = 'fake tweets'
-		fs.appendFile('log.txt', myFirstTwit , function(err) {});
+		var myFirstTweet = 'fake tweets'
+		fs.appendFile('log.txt', myFirstTweet, function(err) {});
 	}
 }
 
 
 //Call spotify function
-
-function fetchSpotify() {
-	if (!userInput) {
-	   	var artistUndefined = "Ace of Bass";
-		var songUndefined = "The Sign";
-		console.log(artistUndefined);
-		console.log(songUndefined);
-	} else {
-		var qUrl = "https://api.spotify.com/v1/search?type=" + userInput
-		request(qUrl, function(error, response, body) {
-    		
-			if (error) {
-	       		console.log('Error occurred: ' + err);
-	       		return;
-	   		} else {
-		   			var json = JSON.parse(body);
-						console.log("----------------------------------")
-						console.log("artist: " + json.artist);
-						console.log("Song name: " + JSON.parse(body).name);
-						console.log("url: " + JSON.parse(body).url);
-						console.log("Album: " + JSON.parse(body).album);
-						console.log("-----------------------------------")
-	   			}
-	   		}
-		);
-		
-	}
+var getArtistNames = function(artist) {
+	return artist.name;
 }
+
+var getMeSpotify = function(songName) {
+	spotify.search({type: 'track', query: songName}, function(err, data) {
+		if (err) {
+			console.log('Error occurred' + err);
+			return;
+		}
+
+		var songs = data.tracks.items;
+		for (var i = 0; i < songs.length; i++) {
+			console.log("----------------------------------");
+			console.log(i);
+			console.log("artist: " + songs[i].artists.map(getArtistNames));
+			console.log("Song name: " + songs[i].name);
+			console.log("preview song: " + songs[i].preview_url);
+			console.log("Album: " + songs[i].album.name);
+			console.log("-----------------------------------")
+
+		}
+	});
+}
+
+	
 
 //Call movie function
 
-function fetchMovie() {
+var getMeMovie = function(movieName) {
 	if (!userInput) {
-			var movieName = "Mr. Nobody";
-			console.log(movieName);
-	} else {		
-		var requestUrl = "http://www.omdbapi.com/?t=" + userInput + "&apikey=40e9cece";
+			console.log("Mr. Nobody");
+	} 
+
+	else {		
+		var requestUrl = "http://www.omdbapi.com/?t=" + movieName + "&apikey=40e9cece";
 
 		request(requestUrl, function(error, response, body) {
-			if (error) {
-			return console.log(error);
-			} 
+			if (!error && response.statusCode === 200) {
 
 			const json = JSON.parse(body);
 
@@ -126,31 +96,58 @@ function fetchMovie() {
 		   		console.log("Plot: " + json.Plot);
 		   		console.log("Actors: " + json.Actors);
 		   		console.log("Rotten Tomatoes: " + json.Value);
-		   		console.log("URL: https://www.rottentomatoes.com/search/?search=" + userInput);
+		   		console.log("Rotten tomatoes URL" + json.tomatoURL);
 				console.log("-----------------------------------------------");
+			}
 		});
 	}
-	fs.appendFile('log.txt', '\n-----------------\n\n', function(err) {});
 }
 
 //Call random function
 
-function fetchRandom() {
-	var fileName = ("random.txt")
-	fs.readFile(fileName, 'utf8', function(err, fileContents){
+var doWhatItSays = function() {
+	fs.readFile('random.txt', 'utf8', function(err, fileContents){
 		if (err) {
 			return console.log(err)
 		} else {
-			var textArray = fileContents.split(',');
-			//userCom = array[0];
-			//userInput = array [1];
-			fetchSpotify(textArray[1]);
+			var textArray = fileContents.split(', ');
+			getMeSpotify(textArray[1]);
+			console.log(textArray);
 
-			console.log("----------------------")
-			console.log(userInput);
-			console.log("----------------------")
 		}
+		
 	});
-	fs.appendFile('log.txt', '\n-----------------\n\n', function(err) {});
+	fs.appendFile('log.txt', '\n--------------------\n\n', function(err) {});
 }
+
+//switch-case statement for user command
+var pick = function(caseData, functionData) {
+	switch (caseData) {
+		case 'my-tweets':
+			getMyTweets();
+			break;
+
+		case 'soptify-this-song':
+			getMeSpotify(functionData);
+			break;
+
+		case 'movie-this':
+			getMeMovie(functionData);
+			break;
+
+		case 'do-what-it-says':
+			doWhatItSays();
+			break;
+
+			default: 
+			console.log("No matching arguments!");
+	}
+}
+
+var runThis = function(argOne, argTwo) {
+	pick(argOne, argTwo);
+};
+
+runThis(userCom, userInput);
+
 
